@@ -502,7 +502,7 @@ python inference.py \
 
 **Lead Developer**: Aditya  
 **Email**: aditya.aitech@gmail.com  
-**GitHub**: [https://github.com/aditya-aitech/bis-standard-recommendation](https://github.com/aditya-aitech/bis-standard-recommendation)  
+**GitHub**: [https://github.com/Aditya3ai/BIS_IIT_TIRUPATI_Team-BM-](https://github.com/Aditya3ai/BIS_IIT_TIRUPATI_Team-BM-)  
 **Track**: AI / Retrieval Augmented Generation (RAG)
 
 ---
