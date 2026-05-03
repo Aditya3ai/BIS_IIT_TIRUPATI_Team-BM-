@@ -1,0 +1,11 @@
+body { background: #f8fafc; }
+.result-card { border-left: 4px solid #0d6efd; }
+.placeholder { color: #6c757d; background: #fff; border: 1px dashed #e9ecef; }
+.navbar-brand { letter-spacing: 0.6px; }
+.card-title { font-weight: 600; }
+.result-card .card-body { gap: 12px; }
+
+/* Responsive tweaks */
+@media (max-width: 768px){
+  .navbar-text{ display:block; margin-top:6px; }
+}

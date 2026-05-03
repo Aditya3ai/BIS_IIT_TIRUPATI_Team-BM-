@@ -307,7 +307,7 @@ Explanation:"""
         
         # Enrich with rationale
         enriched = []
-        for res in results:
+        for rank, res in enumerate(results, start=1):
             chunk = next((c for c in self.chunks if c["standard_id"] == res["standard_id"]), None)
             if chunk:
                 rationale = self.generate_rationale(
@@ -321,6 +321,8 @@ Explanation:"""
             enriched.append({
                 "standard_id": res["standard_id"],
                 "title": res["title"],
+                            "score": float(res.get("score", 0.0)),
+                            "rank": rank,
                 "rationale": rationale
             })
         

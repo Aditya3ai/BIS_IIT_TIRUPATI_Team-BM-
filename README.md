@@ -1,36 +1,33 @@
-# BIS Standard Recommendation Engine  
-**Intelligent Retrieval System for Automating Building Material Standards Discovery**
+BIS Standard Recommendation Engine
+=================================
 
----
+Intelligent Retrieval System for Automating Building Material Standards Discovery
 
-## 1. Problem Statement
+1. Problem Statement
+--------------------
+Micro, Small, and Enterprise (MSE) manufacturers in India face a critical challenge: discovering which BIS (Bureau of Indian Standards) standards apply to their products. The BIS SP21 document contains over 1,200 building material standards covering cements, aggregates, masonry blocks, steel reinforcement, and more. MSEs lack:
 
-Micro, Small, and Enterprise (MSE) manufacturers in India face a critical challenge: **discovering which BIS (Bureau of Indian Standards) standards apply to their products**. The BIS SP21 document contains over **1,200 building material standards** covering cements, aggregates, masonry blocks, steel reinforcement, and more. MSEs lack:
 - Time and resources to manually search through complex documentation
 - Technical expertise to identify relevant standards
 - Access to intelligent discovery tools
 
-**Result**: Non-compliance, quality issues, and market rejection.
+Result: Non-compliance, quality issues, and market rejection.
 
-**Your Solution**: An AI-powered retrieval system that answers queries in **10 milliseconds** with **100% accuracy on top-3 results** and **MRR of 0.95**.
+Your Solution: An AI-powered retrieval system that answers queries in 10 milliseconds with 100% accuracy on top-3 results and MRR of 0.95.
 
----
+2. Solution Overview
+--------------------
+A Retrieval Augmented Generation (RAG) pipeline that:
 
-## 2. Solution Overview
+- Indexes 1,205 BIS standards from SP21 Building Materials section
+- Retrieves top-5 most relevant standards per query using hybrid search (BM25 + TF-IDF)
+- Ranks results via Reciprocal Rank Fusion (RRF) with intelligent reranking
+- Returns standards with titles, scores, and optional AI-generated rationales
 
-A **Retrieval Augmented Generation (RAG) pipeline** that:
-1. **Indexes** 1,205 BIS standards from SP21 Building Materials section
-2. **Retrieves** top-5 most relevant standards per query using hybrid search (BM25 + TF-IDF)
-3. **Ranks** results via Reciprocal Rank Fusion (RRF) with intelligent reranking
-4. **Returns** standards with titles, scores, and optional AI-generated rationales
+Key Innovation: Domain-optimized BM25 keyword search outperforms semantic embeddings on standardized terminology (cement types, aggregate grades, reinforcement specs).
 
-**Key Innovation**: Domain-optimized BM25 keyword search outperforms semantic embeddings on standardized terminology (cement types, aggregate grades, reinforcement specs).
-
----
-
-## 3. System Architecture
-
-```
+3. System Architecture
+----------------------
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                       OFFLINE SETUP (One-Time)                          │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -78,30 +75,23 @@ A **Retrieval Augmented Generation (RAG) pipeline** that:
 │         ↓                                                               │
 │  ✓ Output JSON (standard_id, title, rationale, latency)                │
 └─────────────────────────────────────────────────────────────────────────┘
-```
 
----
+4. Tech Stack
+-------------
+Component	Library	Version	Purpose
+PDF Extraction	pdfplumber	0.11.4	Extract text + structured tables from PDF; preserve layout
+PDF Fallback	pypdf	4.3.1	Backup PDF reader if pdfplumber fails
+BM25 Indexing	rank_bm25	0.2.2	Fast keyword-based search with TF-IDF saturation
+Vector Embeddings	sentence-transformers	3.0.1	Generate 384-dim semantic embeddings (all-MiniLM-L6-v2)
+Dense Vector Index	faiss-cpu	(optional)	Facebook AI Similarity Search for million-scale retrieval
+Numerical Ops	numpy	2.1.1	Matrix operations for TF-IDF and scoring
+LLM Integration	google-generativeai	0.8.3	Google Gemini API for generating explanations
+Configuration	python-dotenv	1.0.0	Load .env file for API keys and model settings
 
-## 4. Tech Stack
+Requirements: Python 3.11+
 
-| Component | Library | Version | Purpose |
-|-----------|---------|---------|---------|
-| **PDF Extraction** | `pdfplumber` | 0.11.4 | Extract text + structured tables from PDF; preserve layout |
-| **PDF Fallback** | `pypdf` | 4.3.1 | Backup PDF reader if pdfplumber fails |
-| **BM25 Indexing** | `rank_bm25` | 0.2.2 | Fast keyword-based search with TF-IDF saturation |
-| **Vector Embeddings** | `sentence-transformers` | 3.0.1 | Generate 384-dim semantic embeddings (all-MiniLM-L6-v2) |
-| **Dense Vector Index** | `faiss-cpu` | (optional) | Facebook AI Similarity Search for million-scale retrieval |
-| **Numerical Ops** | `numpy` | 2.1.1 | Matrix operations for TF-IDF and scoring |
-| **LLM Integration** | `google-generativeai` | 0.8.3 | Google Gemini API for generating explanations |
-| **Configuration** | `python-dotenv` | 1.0.0 | Load `.env` file for API keys and model settings |
-
-**Requirements**: Python 3.11+
-
----
-
-## 5. Project Structure
-
-```
+5. Project Structure
+--------------------
 new_bis/
 ├── README.md                          ← PROJECT DOCUMENTATION (THIS FILE)
 ├── requirements.txt                   ← pip dependencies
@@ -144,107 +134,91 @@ new_bis/
 │
 └── docs/
     └── demo_script.md                 ← Example usage walkthrough
-```
 
----
+6. Setup Instructions
+----------------------
+Prerequisites
+Python 3.11+ (required for type hints and syntax)
+pip package manager
+~500 MB disk space (for indexes + virtual environment)
 
-## 6. Setup Instructions
+Step 1: Clone / Setup Repository
 
-### Prerequisites
-- **Python 3.11+** (required for type hints and syntax)
-- **pip** package manager
-- **~500 MB** disk space (for indexes + virtual environment)
-
-### Step 1: Clone / Setup Repository
-```bash
 cd /path/to/new_bis
-```
 
-### Step 2: Create Virtual Environment
-```bash
+Step 2: Create Virtual Environment
+
 python -m venv .venv
-```
 
-**Activate (Windows PowerShell):**
-```powershell
+Activate (Windows PowerShell):
+
 .\.venv\Scripts\Activate.ps1
-```
 
-**Activate (Windows CMD):**
-```cmd
+Activate (Windows CMD):
+
 .\.venv\Scripts\activate
-```
 
-**Activate (macOS/Linux):**
-```bash
+Activate (macOS/Linux):
+
 source .venv/bin/activate
-```
 
-### Step 3: Install Dependencies
-```bash
+Step 3: Install Dependencies
+
 pip install -r requirements.txt
-```
+Optional: Add FAISS for enhanced vector search
 
-**Optional: Add FAISS for enhanced vector search**
-```bash
 pip install faiss-cpu
-```
 
-### Step 4: Verify Installation
-```bash
+Step 4: Verify Installation
+
 python -c "import rank_bm25, sentence_transformers, pdfplumber; print('✓ All dependencies installed')"
-```
 
-### Step 5: Indexes Already Built
-Pre-built indexes are included in `data/index/`:
-- ✓ `bm25.pkl` (1,205 standards, ~2 MB)
-- ✓ `chunks.json` (metadata, ~5 MB)
-- ✓ `tfidf.pkl` (TF-IDF matrix, ~1 MB)
+Step 5: Indexes Already Built
+----------------------------
+Pre-built indexes are included in data/index/:
 
-**No rebuild needed; ready to run inference immediately.**
+✓ bm25.pkl (1,205 standards, ~2 MB)
+✓ chunks.json (metadata, ~5 MB)
+✓ tfidf.pkl (TF-IDF matrix, ~1 MB)
+No rebuild needed; ready to run inference immediately.
 
-**Note**: The pre-built indexes were generated from BIS SP 21 PDF. Judges do not need to re-run the pipeline — `inference.py` works immediately out-of-the-box.
+Note: The pre-built indexes were generated from BIS SP 21 PDF. Judges do not need to re-run the pipeline — inference.py works immediately out-of-the-box.
 
----
+7. How To Run Inference
+-----------------------
+Judges' Standard Entry Point (From Root Directory)
+BM25-Only Mode (Offline, No API Keys):
 
-## 7. How To Run Inference
-
-### Judges' Standard Entry Point (From Root Directory)
-
-**BM25-Only Mode (Offline, No API Keys):**
-```bash
 python inference.py \
   --input public_test_set.json \
   --output data/results/my_output.json \
   --bm25-only
-```
 
-**Hybrid Mode (BM25 + TF-IDF + RRF Fusion):**
-```bash
+Hybrid Mode (BM25 + TF-IDF + RRF Fusion):
+
 python inference.py \
   --input public_test_set.json \
   --output data/results/my_output.json
-```
 
-**Custom Top-K (Default: 5):**
-```bash
+Custom Top-K (Default: 5):
+
 python inference.py \
   --input public_test_set.json \
   --output data/results/my_output.json \
   --top-k 10
-```
 
-**All Flags:**
-- `--input FILE.json` (required) — Input test set with queries
-- `--output FILE.json` (required) — Where to save results
-- `--index-dir PATH` (default: `data/index`) — Index directory
-- `--top-k N` (default: 5) — Number of top standards to retrieve
-- `--bm25-only` (flag) — Use only BM25, skip vector search
-- `--use-vector-search` (flag) — Enable vector search (default: True)
-- `--use-bm25` (flag) — Enable BM25 (default: True)
+All Flags:
 
-**Expected Output:**
-```json
+--input FILE.json (required) — Input test set with queries
+--output FILE.json (required) — Where to save results
+--index-dir PATH (default: data/index) — Index directory
+--top-k N (default: 5) — Number of top standards to retrieve
+--bm25-only (flag) — Use only BM25, skip vector search
+--use-vector-search (flag) — Enable vector search (default: True)
+--use-bm25 (flag) — Enable BM25 (default: True)
+
+Expected Output:
+
 [
   {
     "id": "PUB-01",
@@ -260,19 +234,14 @@ python inference.py \
     "latency_seconds": 0.018
   }
 ]
-```
 
----
+8. How To Evaluate
+------------------
+Run Judges' Evaluator
 
-## 8. How To Evaluate
-
-### Run Judges' Evaluator
-```bash
 python eval_script.py --results data/results/my_output.json
-```
 
-### Expected Output
-```
+Expected Output
 ========================================
    BIS HACKATHON EVALUATION RESULTS
 ========================================
@@ -281,106 +250,95 @@ Hit Rate @3             : 100.00%       (Target: >80%)
 MRR @5                  : 0.9500        (Target: >0.7)
 Avg Latency             : 0.01 sec      (Target: <5 seconds)
 ========================================
-```
 
-### What Each Metric Means
+What Each Metric Means
+Hit Rate @3 = % of queries where ≥1 correct standard appears in top 3 results
 
-**Hit Rate @3** = % of queries where ≥1 correct standard appears in top 3 results
-- **Target**: >80% (users find answer quickly)
-- **Your Result**: **100%** ✅
+Target: >80% (users find answer quickly)
+Your Result: 100% ✅
+MRR @5 = Mean Reciprocal Rank (average of 1/position of first correct answer in top 5)
 
-**MRR @5** = Mean Reciprocal Rank (average of 1/position of first correct answer in top 5)
-- **Target**: >0.7 (first correct answer around rank 1-2)
-- **Your Result**: **0.95** ✅ (first correct answer at rank ~1.05 on average)
+Target: >0.7 (first correct answer around rank 1-2)
+Your Result: 0.95 ✅ (first correct answer at rank ~1.05 on average)
+Avg Latency = Average query response time
 
-**Avg Latency** = Average query response time
-- **Target**: <5 seconds per query
-- **Your Result**: **0.01 seconds** (10 milliseconds) ✅
+Target: <5 seconds per query
+Your Result: 0.01 seconds (10 milliseconds) ✅
 
----
+9. Evaluation Results (Public Test Set)
+-------------------------------------
+Test Set: 10 diverse queries covering cement types, aggregates, masonry, reinforcement Engine: BM25 + TF-IDF + RRF Fusion + Lexical Reranking
 
-## 9. Evaluation Results (Public Test Set)
+Metric	Value	Target	Status
+Hit Rate @3	100.00%	>80%	✅ PASS
+MRR @5	0.9500	>0.7	✅ PASS
+Avg Latency	0.01 sec	<5s	✅ PASS
+Total Queries	10	—	—
+Per-Query Breakdown:
 
-**Test Set**: 10 diverse queries covering cement types, aggregates, masonry, reinforcement
-**Engine**: BM25 + TF-IDF + RRF Fusion + Lexical Reranking
+PUB-01 (33 Grade OPC): Rank 2 ✓ (Hit@3 ✓)
+PUB-02 (Aggregates): Rank 1 ✓
+PUB-03 (Precast pipes): Rank 1 ✓
+PUB-04 (Masonry blocks): Rank 1 ✓
+PUB-05 (Asbestos sheets): Rank 1 ✓
+PUB-06 (Slag cement): Rank 1 ✓
+PUB-07 (Pozzolana cement): Rank 1 ✓
+PUB-08 (Masonry cement): Rank 1 ✓
+PUB-09 (Supersulphated): Rank 1 ✓
+PUB-10 (White Portland): Rank 1 ✓
+All queries return correct standard within top-3 → 100% Hit@3. Average rank ~1.1 → 95% MRR.
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| **Hit Rate @3** | **100.00%** | >80% | ✅ PASS |
-| **MRR @5** | **0.9500** | >0.7 | ✅ PASS |
-| **Avg Latency** | **0.01 sec** | <5s | ✅ PASS |
-| **Total Queries** | 10 | — | — |
+10. Chunking Strategy
+---------------------
+One Standard = One Chunk
+Rationale: BIS SP21 organizes standards with consistent headers like:
 
-**Per-Query Breakdown:**
-- PUB-01 (33 Grade OPC): Rank 2 ✓ (Hit@3 ✓)
-- PUB-02 (Aggregates): Rank 1 ✓
-- PUB-03 (Precast pipes): Rank 1 ✓
-- PUB-04 (Masonry blocks): Rank 1 ✓
-- PUB-05 (Asbestos sheets): Rank 1 ✓
-- PUB-06 (Slag cement): Rank 1 ✓
-- PUB-07 (Pozzolana cement): Rank 1 ✓
-- PUB-08 (Masonry cement): Rank 1 ✓
-- PUB-09 (Supersulphated): Rank 1 ✓
-- PUB-10 (White Portland): Rank 1 ✓
-
-**All queries return correct standard within top-3 → 100% Hit@3. Average rank ~1.1 → 95% MRR.**
-
----
-
-## 10. Chunking Strategy
-
-### One Standard = One Chunk
-
-**Rationale**: BIS SP21 organizes standards with consistent headers like:
-```
 IS 269: 1989
 Specification for Ordinary Portland Cement
 
 IS 8112: 1989
 Specification for 43 Grade Ordinary Portland Cement
-```
 
-**Chunking Algorithm**:
-1. Split `sp21_raw.md` by lines
-2. Detect regex pattern: `^IS\s+\d{1,5}` (matches "IS 269", "IS 8112")
-3. Extract:
-   - Standard ID: `"IS 269: 1989"`
-   - Part: `"(Part 1)"` if multi-part
-   - Title: Next ~3 lines after "IS XXXX:"
-   - Content: Everything until next "IS XXXX:" header
-4. Track page markers for source attribution
+Chunking Algorithm:
 
-**Result**: 1,205 chunks, each representing one complete BIS standard.
+Split sp21_raw.md by lines
+Detect regex pattern: ^IS\s+\d{1,5} (matches "IS 269", "IS 8112")
+Extract:
+Standard ID: "IS 269: 1989"
+Part: "(Part 1)" if multi-part
+Title: Next ~3 lines after "IS XXXX:"
+Content: Everything until next "IS XXXX:" header
+Track page markers for source attribution
+Result: 1,205 chunks, each representing one complete BIS standard.
 
-### Title Boosting for Better Ranking
+Title Boosting for Better Ranking
+Enhancement: During BM25 index build, titles are repeated 3 times in the document text:
 
-**Enhancement**: During BM25 index build, titles are **repeated 3 times** in the document text:
-```python
 # Before: "IS 269 Specification for... content..."
 # After: "IS 269 Specification for... Specification for... Specification for... content..."
-```
 
-**Effect**: Title terminology matches are prioritized 3x higher in BM25 scoring, ensuring exact standard names rank first (e.g., "masonry cement" query ranks "IS 3466: Masonry Cement" highest).
+Effect: Title terminology matches are prioritized 3x higher in BM25 scoring, ensuring exact standard names rank first (e.g., "masonry cement" query ranks "IS 3466: Masonry Cement" highest).
 
-**Compact IS-Numbers**: Tokenizer rewrites "IS 269" → "IS269" to ensure exact-match retrieval on standard IDs.
+Compact IS-Numbers: Tokenizer rewrites "IS 269" → "IS269" to ensure exact-match retrieval on standard IDs.
 
----
+11. Retrieval Strategy
+----------------------
+Three-Stage Retrieval Pipeline
+Stage 1: Parallel Search (Top-50 candidates each)
 
-## 11. Retrieval Strategy
+BM25 Search: Exact keyword matching with term frequency saturation
 
-### Three-Stage Retrieval Pipeline
+Query tokens: ["33", "grade", "opc", "cement"]
+Scores chunks by relevance using Okapi BM25 algorithm
+Returns indices sorted by BM25 score
+TF-IDF Vector Search: Semantic term weighting
 
-**Stage 1: Parallel Search (Top-50 candidates each)**
-- **BM25 Search**: Exact keyword matching with term frequency saturation
-  - Query tokens: ["33", "grade", "opc", "cement"]
-  - Scores chunks by relevance using Okapi BM25 algorithm
-  - Returns indices sorted by BM25 score
-  
-- **TF-IDF Vector Search**: Semantic term weighting
-  - Vectorizes query and all chunks using TF-IDF
-  - Computes cosine similarity
-  - Returns indices sorted by similarity
+Vectorizes query and all chunks using TF-IDF
+Computes cosine similarity
+Returns indices sorted by similarity
+Stage 2: Reciprocal Rank Fusion (RRF)
 
+<<<<<<< HEAD
 **Stage 2: Reciprocal Rank Fusion (RRF)**
 - **Formula**: Fused score = 0.6 × (1 / (60 + BM25_rank)) + 0.4 × (1 / (60 + TF-IDF_rank))
 - **Weights**: 60% BM25 (domain precision) + 40% TF-IDF (semantic backup)
@@ -564,3 +522,6 @@ BIS Hackathon Submission, Sigma Squad IIT Tirupati.
 
 **Last Updated**: May 3, 2026  
 **Status**: Production Ready ✅
+=======
+{
+>>>>>>> 0a30192 (UI: Add Flask demo, CSS; Update README with project description and instructions)
