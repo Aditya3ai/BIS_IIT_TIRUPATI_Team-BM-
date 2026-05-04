@@ -102,6 +102,13 @@ class BISRetriever:
         text = re.sub(r"\bis\s+(\d{1,5})\b", r"is\1", text)
         text = re.sub(r"[^a-z0-9]+", " ", text)
         return [t for t in text.split() if t]
+
+    def normalize_query_text(self, text: str) -> str:
+        """Normalize query text to match the index text more closely."""
+        text = (text or "").lower()
+        text = re.sub(r"\bis\s+(\d{1,5})\b", r"is\1", text)
+        text = re.sub(r"[^a-z0-9]+", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
     
     def retrieve_bm25(self, query: str, top_k: int = 50) -> List[Tuple[int, float]]:
         """BM25 keyword search. Returns (chunk_id, score) tuples."""
@@ -126,7 +133,7 @@ class BISRetriever:
             return []
         
         try:
-            qvec = self.tfidf_vectorizer.transform([query])
+            qvec = self.tfidf_vectorizer.transform([self.normalize_query_text(query)])
             scores = (self.tfidf_matrix @ qvec.T).toarray().ravel()
 
             top_indices = np.argsort(scores)[::-1][:top_k]
@@ -161,7 +168,8 @@ class BISRetriever:
                 results.append({
                     "standard_id": chunk["standard_id"],
                     "title": chunk.get("title", ""),
-                    "score": float(scores[idx])
+                    "score": float(scores[idx]),
+                    "rrf_score": float(scores[idx])
                 })
         
         return results
@@ -251,9 +259,10 @@ Explanation:"""
                 {
                     "standard_id": self.chunks[idx]["standard_id"],
                     "title": self.chunks[idx].get("title", ""),
-                    "score": score
+                    "score": float(1.0 / (60 + rank + 1)),
+                    "rrf_score": float(1.0 / (60 + rank + 1))
                 }
-                for idx, score in bm25_results[:top_k]
+                for rank, (idx, _) in enumerate(bm25_results[:top_k])
             ]
         elif vector_results:
             # Vector only
@@ -261,9 +270,10 @@ Explanation:"""
                 {
                     "standard_id": self.chunks[idx]["standard_id"],
                     "title": self.chunks[idx].get("title", ""),
-                    "score": score
+                    "score": float(1.0 / (60 + rank + 1)),
+                    "rrf_score": float(1.0 / (60 + rank + 1))
                 }
-                for idx, score in vector_results[:top_k]
+                for rank, (idx, _) in enumerate(vector_results[:top_k])
             ]
         else:
             results = []
@@ -277,9 +287,22 @@ Explanation:"""
                 "details", "detailing", "standard", "standards", "company", "manufactures",
                 "manufacturing", "product", "physical", "chemical"
             }
+            q_text = re.sub(r"[^a-z0-9]+", " ", (query or "").lower())
+            q_text = q_text.replace("super sulphated", "supersulphated")
             q_tokens = {t for t in self.tokenize(query) if len(t) > 2 and t not in stop_tokens}
             reranked: List[Dict] = []
             seen: set = set()
+
+            exact_phrase_boosts = {
+                "33 grade ordinary portland cement": 0.22,
+                "masonry cement": 0.22,
+                "supersulphated cement": 0.22,
+                "white portland cement": 0.22,
+                "portland slag cement": 0.22,
+                "portland pozzolana cement": 0.22,
+                "corrugated and semi corrugated asbestos cement sheets": 0.25,
+                "lightweight concrete masonry blocks": 0.22,
+            }
 
             for res in results:
                 std_key = re.sub(r"\s+", "", res["standard_id"]).lower()
@@ -288,22 +311,48 @@ Explanation:"""
                 seen.add(std_key)
 
                 title_tokens = {t for t in self.tokenize(res.get("title", "")) if len(t) > 2 and t not in stop_tokens}
+                title_text = re.sub(r"[^a-z0-9]+", " ", res.get("title", "").lower())
+                title_text = title_text.replace("super sulphated", "supersulphated")
                 overlap = len(q_tokens.intersection(title_tokens))
-                bonus = 0.03 * overlap
+                bonus = 0.02 * overlap
+
+                # Strong phrase alignment: if the user's wording appears in the title,
+                # push that standard above broader neighboring standards.
+                if q_text and title_text:
+                    if q_text in title_text or title_text in q_text:
+                        bonus += 0.15
+                    for phrase, phrase_bonus in exact_phrase_boosts.items():
+                        if phrase in q_text and phrase in title_text:
+                            bonus += phrase_bonus
 
                 # Phrase-level boosts for ambiguous cement classes.
                 if {"masonry", "cement"}.issubset(q_tokens) and {"masonry", "cement"}.issubset(title_tokens):
-                    bonus += 0.18
+                    bonus += 0.12
                 if {"white", "portland", "cement"}.issubset(q_tokens) and {"white", "portland", "cement"}.issubset(title_tokens):
                     bonus += 0.12
                 if {"supersulphated", "cement"}.issubset(q_tokens) and {"supersulphated", "cement"}.issubset(title_tokens):
+                    bonus += 0.14
+                if {"asbestos", "cement", "sheets"}.issubset(q_tokens) and {"asbestos", "cement", "sheets"}.issubset(title_tokens):
+                    bonus += 0.14
+                if {"portland", "slag", "cement"}.issubset(q_tokens) and {"portland", "slag", "cement"}.issubset(title_tokens):
+                    bonus += 0.12
+                if {"portland", "pozzolana", "cement"}.issubset(q_tokens) and {"portland", "pozzolana", "cement"}.issubset(title_tokens):
                     bonus += 0.12
 
-                res["score"] = float(res.get("score", 0.0) + bonus)
+                res["rrf_score"] = float(res.get("rrf_score", res.get("score", 0.0)))
+                res["lexical_bonus"] = float(bonus)
+                res["score"] = float(res["rrf_score"] + bonus)
                 reranked.append(res)
 
             reranked.sort(key=lambda x: x.get("score", 0.0), reverse=True)
             results = reranked[:top_k]
+            
+            # Normalize final scores to 0-1 range for cleaner output
+            if results:
+                max_score = max(r.get("score", 0.0) for r in results) or 1.0
+                for r in results:
+                    raw_score = r.get("score", 0.0)
+                    r["score"] = float(raw_score / max_score) if max_score > 0 else 0.0
         
         # Enrich with rationale
         enriched = []
@@ -321,8 +370,10 @@ Explanation:"""
             enriched.append({
                 "standard_id": res["standard_id"],
                 "title": res["title"],
-                            "score": float(res.get("score", 0.0)),
-                            "rank": rank,
+                "score": float(res.get("score", 0.0)),
+                "rrf_score": float(res.get("rrf_score", 0.0)),
+                "lexical_bonus": float(res.get("lexical_bonus", 0.0)),
+                "rank": rank,
                 "rationale": rationale
             })
         

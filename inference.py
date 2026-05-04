@@ -40,6 +40,16 @@ def post_filter_rationale(rationale: str, standard_id: str) -> str:
     return re.sub(r"\s+", " ", filtered).strip()
 
 
+def normalize_standard_id(standard_id: str) -> str:
+    """Format BIS standard IDs for cleaner JSON output."""
+    standard_id = re.sub(r"\s+", " ", str(standard_id or "")).strip()
+    standard_id = re.sub(r"\bPART\b", "Part", standard_id, flags=re.IGNORECASE)
+    standard_id = re.sub(r"\bIS\s+(\d{1,5})\b", r"IS \1", standard_id, flags=re.IGNORECASE)
+    standard_id = re.sub(r"\s*:\s*", ": ", standard_id)
+    standard_id = re.sub(r"\(\s*Part\s*(\d+)\s*\)", r"(Part \1)", standard_id, flags=re.IGNORECASE)
+    return standard_id
+
+
 def main():
     parser = argparse.ArgumentParser(description="Repo-root inference wrapper")
     parser.add_argument("--input", required=True)
@@ -75,7 +85,7 @@ def main():
             "id": qid,
             "query": q,
             "expected_standards": item.get("expected_standards", []),
-            "retrieved_standards": [r["standard_id"] for r in retrieved],
+            "retrieved_standards": [normalize_standard_id(r["standard_id"]) for r in retrieved],
             "latency_seconds": round(latency, 3),
         })
 
